@@ -68,3 +68,12 @@
 - Панели внизу редактора в одну sticky-стопку: добавление вопросов + сохранение; Alert с ошибками — `absolute bottom-full`, прижат низом к панели добавления, растёт вверх (без overflow-обрезки, details в 2 колонки).
 - Лишний скролл на /admin: высота секции теперь через flex (`min-h-dvh` + `flex-1`), без независимых `calc(100dvh-…)`.
 - Инфра: npm optional-deps баг на переустановке — доставил linux-нативные билды вручную (`--no-save`); node_modules/typescript не финализировался npm — staging-папка перемещена вручную; GOMAXPROCS=1 для серверного typecheck.
+
+## Этап 8. Тестовое покрытие
+
+- Тест-раннер: vitest 5 (общий devDependency в корне), скрипты `npm run test` в client/server и суммарно в корне.
+- Рефакторинг сервера под тестируемость: `db.ts` — путь БД перекрыт через `process.env.DATA_FILE` (раньше был константой); `app.ts` — перенос сборки express-приложения в `createApp()`, `index.ts` только env+listen; экспортированы `slugify`/`generateSlug`.
+- Вынесена логика из компонентов: `widgets/form-editor/model.ts` (newQuestion/cleanupQuestion/validateDraft), `widgets/responses-viewer/lib.ts` (buildOptionCounts/pluralizeAnswers), `shared/lib/csv.ts` (buildAttemptsCsv).
+- Серверные тесты (4 файла, 55): транслитерация слагов, валидация форм/попыток, БД (roundtrip/битый JSON/бэкап/пути), интеграционные API-тесты полного CRUD+publish/unpublish+attempts на эфемерном порту с временной БД.
+- Клиентские тесты (5 файлов, 39): модель редактора, CSV, форматирование даты, entities (isChoiceType/publicFormUrl), http-обёртка (ошибки/заголовки/методы).
+- Итого покрытия 94 теста; build/lint/typecheck зелёные.
