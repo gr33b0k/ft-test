@@ -1,28 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { ArrowLeft, ChartColumn, Download, Inbox } from "lucide-react";
 import { formsApi } from "@/entities/form/api";
-import { type Attempt, type Form, isChoiceType } from "@/entities/form/model";
+import { type Attempt, type Form } from "@/entities/form/model";
+import { buildAttemptsCsv } from "@/shared/lib/csv";
 import { formatDateTime } from "@/shared/lib/format";
 import { Alert, Badge, Button, Chip, PageLoader } from "@/shared/ui";
+import { type AttemptOptionSummary, buildOptionCounts, pluralizeAnswers } from "../lib";
 
 function downloadCsv(form: Form, attempts: Attempt[]) {
-  const escape = (v: string) => `"${v.replaceAll('"', '""')}"`;
-  const header = ["Дата отправки", ...form.questions.map((q) => q.label)];
-  const rows = attempts.map((attempt) => {
-    const cells = form.questions.map((q) => {
-      const answer = attempt.answers.find((a) => a.questionId === q.id);
-      if (!answer) return "";
-      return Array.isArray(answer.value)
-        ? answer.value.join("; ")
-        : answer.value;
-    });
-    return [formatDateTime(attempt.createdAt), ...cells].map(escape);
-  });
-  const csv =
-    "\uFEFF" +
-    [header.map(escape).join(","), ...rows.map((r) => r.join(","))].join("\n");
-
+  const csv = buildAttemptsCsv({ form, attempts });
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -30,11 +17,6 @@ function downloadCsv(form: Form, attempts: Attempt[]) {
   a.download = `${form.slug || form.id}-answers.csv`;
   a.click();
   URL.revokeObjectURL(url);
-}
-
-interface OptionCount {
-  option: string;
-  count: number;
 }
 
 export function ResponsesViewer() {
@@ -58,38 +40,8 @@ export function ResponsesViewer() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  const optionCounts = useMemo(() => {
-    if (!form || !attempts) return [];
-    return form.questions.map((q) => {
-      if (!isChoiceType(q.type))
-        return {
-          question: q,
-          counts: [] as OptionCount[],
-          total: attempts.length,
-        };
-      const totals = new Map<string, number>();
-      for (const o of q.options ?? []) totals.set(o, 0);
-      let total = 0;
-      for (const a of attempts) {
-        const answer = a.answers.find((ans) => ans.questionId === q.id);
-        if (!answer) continue;
-        const values = Array.isArray(answer.value)
-          ? answer.value
-          : String(answer.value).trim() !== ""
-            ? [answer.value]
-            : [];
-        for (const v of values) totals.set(v, (totals.get(v) ?? 0) + 1);
-        total += values.length;
-      }
-      return {
-        question: q,
-        counts: [...totals.entries()]
-          .map(([option, count]) => ({ option, count }))
-          .sort((x, y) => y.count - x.count),
-        total,
-      };
-    });
-  }, [form, attempts]);
+  const optionCounts: AttemptOptionSummary[] =
+    form && attempts ? buildOptionCounts(form, attempts) : [];
 
   if (loading) return <PageLoader />;
   if (error)
@@ -286,12 +238,4 @@ export function ResponsesViewer() {
       </section>
     </section>
   );
-}
-
-function pluralizeAnswers(n: number): string {
-  const last = n % 10;
-  const lastTwo = n % 100;
-  if (last === 1 && lastTwo !== 11) return "ответ";
-  if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) return "ответа";
-  return "ответов";
 }
