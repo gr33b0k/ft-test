@@ -15,9 +15,16 @@
 
 ```bash
 git clone https://github.com/gr33b0k/ft-test.git
+cd ft-test
 ```
 
-2. Установить зависимости
+2. Создать .env файл
+
+```bash
+cp .env.example .env
+```
+
+3. Установить зависимости
 
 ```bash
 npm install
