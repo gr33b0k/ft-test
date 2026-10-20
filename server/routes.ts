@@ -20,14 +20,14 @@ function transliterate(text: string): string {
   return [...text.toLowerCase()].map((ch) => TRANSLIT[ch] ?? ch).join("");
 }
 
-function slugify(title: string): string {
+export function slugify(title: string): string {
   return transliterate(title)
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
 
-function generateSlug(title: string, forms: Form[]): string {
+export function generateSlug(title: string, forms: Form[]): string {
   const existing = new Set(forms.map((f) => f.slug));
   const base = slugify(title) || "form";
   let slug = base;
