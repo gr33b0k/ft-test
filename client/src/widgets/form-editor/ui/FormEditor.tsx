@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronUp, Copy, ExternalLink, X } from 'lucide-react'
 import { formsApi } from '@/entities/form/api'
 import {
   QUESTION_TYPES,
@@ -10,7 +11,7 @@ import {
   isChoiceType,
   publicFormUrl,
 } from '@/entities/form/model'
-import { Alert, Badge, Button, Input, PageLoader, Select, Textarea } from '@/shared/ui'
+import { Alert, Badge, Button, CustomSelect, Input, PageLoader, Textarea } from '@/shared/ui'
 
 function newQuestion(type: QuestionType): Question {
   const q: Question = { id: crypto.randomUUID(), type, label: '', required: false }
@@ -165,8 +166,12 @@ export function FormEditor() {
 
   return (
     <section className="mx-auto max-w-3xl px-5 pb-40 pt-8">
-      <Link to="/admin" className="inline-flex items-center gap-1 text-sm font-medium text-ink-muted transition-colors hover:text-brand-600">
-        ← Все формы
+      <Link
+        to="/admin"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-muted transition-colors hover:text-brand-600"
+      >
+        <ArrowLeft className="size-4" aria-hidden />
+        Все формы
       </Link>
 
       <div className="mt-4 mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -178,15 +183,22 @@ export function FormEditor() {
           {form.published && (
             <>
               <Button variant="secondary" onClick={handleCopy}>
-                {copied ? 'Скопировано ✓' : 'Копировать ссылку'}
+                {copied ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
+                {copied ? 'Скопировано' : 'Копировать ссылку'}
               </Button>
               <a href={`/f/${form.slug}`} target="_blank" rel="noreferrer">
-                <Button variant="ghost">Открыть ↗</Button>
+                <Button variant="ghost">
+                  Открыть
+                  <ExternalLink className="size-4" aria-hidden />
+                </Button>
               </a>
             </>
           )}
           <Link to={`/admin/forms/${id}/responses`}>
-            <Button variant="outline-brand">Ответы →</Button>
+            <Button variant="outline-brand">
+              Ответы
+              <ArrowRight className="size-4" aria-hidden />
+            </Button>
           </Link>
           {form.published ? (
             <Button variant="secondary" onClick={handlePublishToggle}>
@@ -211,7 +223,7 @@ export function FormEditor() {
 
       {/* Основное */}
       <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-stone-200">
-        <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-ink-muted">Anкета</h2>
+        <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-ink-muted">Анкета</h2>
         <div className="space-y-4">
           <Input placeholder="Название формы" value={title} onChange={(e) => setTitle(e.target.value)} />
           <Textarea placeholder="Описание (необязательно)" value={description} onChange={(e) => setDescription(e.target.value)} />
@@ -224,25 +236,25 @@ export function FormEditor() {
           <div key={q.id} className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-stone-200 transition hover:ring-stone-300">
             <div className="mb-3 flex items-center justify-between">
               <span className="inline-flex items-center gap-2 text-xs font-semibold text-ink-muted">
-                <span className="grid size-6 place-items-center rounded-lg bg-brand-100 text-[11px] font-bold text-brand-700">
+                <span className="inline-grid size-6 place-items-center rounded-lg bg-brand-100 text-[11px] font-bold text-brand-700">
                   {i + 1}
                 </span>
                 Вопрос {i + 1}
               </span>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" className="size-8 p-0" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Выше">
-                  ↑
+                <Button variant="ghost" className="size-8 shrink-0 p-0" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Выше">
+                  <ChevronUp className="size-4" aria-hidden />
                 </Button>
-                <Button variant="ghost" className="size-8 p-0" onClick={() => move(i, 1)} disabled={i === questions.length - 1} aria-label="Ниже">
-                  ↓
+                <Button variant="ghost" className="size-8 shrink-0 p-0" onClick={() => move(i, 1)} disabled={i === questions.length - 1} aria-label="Ниже">
+                  <ChevronDown className="size-4" aria-hidden />
                 </Button>
                 <Button
                   variant="ghost"
-                  className="size-8 p-0 text-red-500 hover:bg-red-50"
+                  className="size-8 shrink-0 p-0 text-red-500 hover:bg-red-50"
                   onClick={() => setQuestions((qs) => qs.filter((q2) => q2.id !== q.id))}
                   aria-label="Удалить вопрос"
                 >
-                  ✕
+                  <X className="size-4" aria-hidden />
                 </Button>
               </div>
             </div>
@@ -250,13 +262,13 @@ export function FormEditor() {
             <div className="grid gap-3 sm:grid-cols-[1fr_230px]">
               <Input placeholder={`Текст вопроса ${i + 1}`} value={q.label} onChange={(e) => updateQuestion(q.id, { label: e.target.value })} />
               <div className="flex items-center gap-3">
-                <Select value={q.type} onChange={(e) => changeType(q, e.target.value as QuestionType)}>
-                  {QUESTION_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {QUESTION_TYPE_LABELS[t]}
-                    </option>
-                  ))}
-                </Select>
+                <CustomSelect
+                  value={q.type}
+                  onValueChange={(t) => changeType(q, t as QuestionType)}
+                  options={QUESTION_TYPES.map((t) => ({ value: t, label: QUESTION_TYPE_LABELS[t] }))}
+                  ariaLabel={`Тип вопроса ${i + 1}`}
+                  className="flex-1"
+                />
                 <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-sm text-ink-soft">
                   <input
                     type="checkbox"
@@ -273,7 +285,7 @@ export function FormEditor() {
               <div className="mt-3 space-y-2 rounded-xl bg-canvas p-3">
                 {q.options!.map((opt, oi) => (
                   <div key={oi} className="flex items-center gap-2">
-                    <span className="template grid size-6 place-items-center rounded-lg bg-white text-[11px] font-semibold text-ink-muted ring-1 ring-stone-200">
+                    <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-white text-[11px] font-semibold text-ink-muted ring-1 ring-stone-200">
                       {oi + 1}
                     </span>
                     <Input
@@ -289,7 +301,7 @@ export function FormEditor() {
                       disabled={q.options!.length <= 1}
                       aria-label="Удалить вариант"
                     >
-                      ✕
+                      <X className="size-4" aria-hidden />
                     </Button>
                   </div>
                 ))}
@@ -327,8 +339,9 @@ export function FormEditor() {
 
       {/* Панель сохранения */}
       <div className="sticky bottom-4 mt-6 flex items-center justify-between gap-4 rounded-2xl bg-white/95 p-4 shadow-lg shadow-stone-900/10 ring-1 ring-stone-200 backdrop-blur">
-        <span className={`text-sm font-medium ${changed ? 'text-brand-600' : 'text-emerald-600'}`}>
-          {changed ? '● Есть несохранённые изменения' : '✓ Всё сохранено'}
+        <span className={`inline-flex items-center gap-2 text-sm font-medium ${changed ? 'text-brand-600' : 'text-emerald-600'}`}>
+          {!changed && <Check className="size-4" aria-hidden />}
+          {changed ? 'Есть несохранённые изменения' : 'Всё сохранено'}
         </span>
         <Button onClick={handleSave} disabled={saving}>
           {saving ? 'Сохранение…' : 'Сохранить'}

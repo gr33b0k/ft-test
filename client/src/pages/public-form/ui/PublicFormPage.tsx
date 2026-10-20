@@ -4,7 +4,7 @@ import { PublicForm } from '@/widgets/public-form'
 export function PublicFormPage() {
   const { slug } = useParams<{ slug: string }>()
   return (
-    <div className="min-h-screen bg-gradient-to-b from-brand-50 via-canvas to-canvas">
+    <div className="min-h-screen bg-canvas">
       <PublicForm slug={slug ?? ''} />
     </div>
   )

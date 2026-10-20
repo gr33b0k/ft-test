@@ -45,3 +45,14 @@
 - `npm run typecheck` (server) — чисто; `npm run lint` и `npm run build` (client) — чисто.
 - API-сценарии через прокси: create → publish (слаг «стажировка-frontend») → public get → валидная отправка (201) → attempts.
 - Клиент перестроен по FSD: `app / pages / widgets / entities / features / shared`, алиас `@/*`, оранжевая брендовая тема через `@theme` токены в `src/index.css`.
+
+## Этап 6. Дизайн-ревизия (иконки, логотип, кастомный select)
+
+- Подключён `lucide-react` (1.60.0): все эмодзи и текстовые стрелки заменены иконками (Header, FormsList, FormEditor, PublicForm, ResponsesViewer, NotFoundPage).
+- Логотип сервиса: иконка `FilePlus2` в оранжевом квадрате (`bg-brand-600`), название **FutureForms** (`Future` + оранжевое `Forms`); при hover меняется только цвет квадрата, размеры — без анимаций.
+- Новый `shared/ui/select.tsx` (`CustomSelect`): клик-вне-клик/Escape-закрытие, галочка у выбранного варианта, ChevronDown, `role="combobox"/"listbox"`; заменил нативные `<Select>` в редакторе и публичной форме.
+- Публичная страница: убран градиентный «glow» фона → плоский `bg-canvas`; чекбоксы/радио — `transition-colors` вместо `transition-all` (не анимируется смена шрифта), выбор за счёт фона и рамки; номер вопроса выровнен по первой строке (size-5 + translate-y).
+- Пустые состояния растянуты на высоту экрана (sticky-навбар 64px), более крупная типографика.
+- Sticky-панель сохранения в редакторе: точка-индикатор / иконка `Check` вместо текстовых ● и ✓.
+- Обновлены `index.html` (title FutureForms) и `favicon.svg` (оранжевый квадрат с плюсом).
+- Проверено: `npm run build` (tsc -b + vite, но чисто), `npm run lint` (чисто), smoke-тест деных сервисов: клиент :3000 → 200, `/api/forms` → 200, `/api/public/forms/x` → 404 JSON.

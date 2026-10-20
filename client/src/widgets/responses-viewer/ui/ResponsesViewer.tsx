@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { ArrowLeft, Inbox } from 'lucide-react'
 import { formsApi } from '@/entities/form/api'
 import { type Attempt, type Form, isChoiceType } from '@/entities/form/model'
 import { formatDateTime } from '@/shared/lib/format'
@@ -82,9 +83,10 @@ export function ResponsesViewer() {
     <section className="mx-auto max-w-4xl px-5 pb-16 pt-8">
       <Link
         to={`/admin/forms/${form.id}`}
-        className="inline-flex items-center gap-1 text-sm font-medium text-ink-muted transition-colors hover:text-brand-600"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-muted transition-colors hover:text-brand-600"
       >
-        ← Редактор формы
+        <ArrowLeft className="size-4" aria-hidden />
+        Редактор формы
       </Link>
 
       <div className="mt-4 mb-8 flex flex-wrap items-center justify-between gap-4">
@@ -140,7 +142,9 @@ export function ResponsesViewer() {
 
       {attempts!.length === 0 ? (
         <div className="rounded-3xl border-2 border-dashed border-stone-300 bg-white px-6 py-20 text-center">
-          <div className="mx-auto mb-4 grid size-12 place-items-center rounded-2xl bg-brand-50 text-xl">📥</div>
+          <div className="mx-auto mb-4 grid size-12 place-items-center rounded-2xl bg-brand-50 text-brand-600">
+            <Inbox className="size-6" aria-hidden />
+          </div>
           <p className="font-medium text-ink">Ответов пока нет</p>
           <p className="mt-1 text-sm text-ink-muted">Поделитесь ссылкой на форму со студентами.</p>
         </div>

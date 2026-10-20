@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Check, Copy, FileText } from 'lucide-react'
 import { formsApi } from '@/entities/form/api'
 import { type Form, publicFormUrl } from '@/entities/form/model'
 import { formatDateTime } from '@/shared/lib/format'
@@ -68,7 +69,7 @@ export function FormsList() {
   if (loading) return <PageLoader />
 
   return (
-    <section className="mx-auto max-w-5xl px-5 pb-16 pt-10">
+    <section className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-5xl flex-col px-5 pb-16 pt-10">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-ink">Формы отклика</h1>
@@ -82,16 +83,22 @@ export function FormsList() {
       </div>
 
       {error && (
-        <div className="mb-6">
+        <div className="mb-6 shrink-0">
           <Alert>{error}</Alert>
         </div>
       )}
 
       {forms.length === 0 ? (
-        <div className="rounded-3xl border-2 border-dashed border-stone-300 bg-white px-6 py-20 text-center">
-          <div className="mx-auto mb-4 grid size-12 place-items-center rounded-2xl bg-brand-50 text-xl">📝</div>
-          <p className="font-medium text-ink">Форм пока нет</p>
-          <p className="mt-1 text-sm text-ink-muted">Создайте первую форму отклика.</p>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="w-full rounded-3xl border-2 border-dashed border-stone-300 bg-white px-6 py-16 text-center">
+            <div className="mx-auto mb-5 grid size-14 place-items-center rounded-2xl bg-brand-50 text-brand-600">
+              <FileText className="size-7" aria-hidden />
+            </div>
+            <p className="text-lg font-semibold text-ink">Форм пока нет</p>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-ink-muted">
+              Создайте первую форму отклика — соберите вопросы, опубликуйте её и поделитесь ссылкой со студентами.
+            </p>
+          </div>
         </div>
       ) : (
         <ul className="space-y-4">
@@ -121,7 +128,8 @@ export function FormsList() {
                   {form.published ? (
                     <>
                       <Button variant="secondary" onClick={() => handleCopy(form)}>
-                        {copiedId === form.id ? 'Скопировано ✓' : 'Копировать ссылку'}
+                        {copiedId === form.id ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
+                        {copiedId === form.id ? 'Скопировано' : 'Копировать ссылку'}
                       </Button>
                       <Button variant="secondary" onClick={() => handleTogglePublish(form)}>
                         Снять с публикации
