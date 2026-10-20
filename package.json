@@ -1,20 +1,25 @@
 {
   "name": "ft-test",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Сервис конструирования форм отклика для карьерной платформы",
   "devDependencies": {
     "concurrently": "^10.0.6"
   },
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
-    "start": "concurrently \"npm run start --prefix server\" \"npm run dev --prefix client\"",
+    "dev": "concurrently -n server,client -c blue,green \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "start": "concurrently -n server,client -c blue,green \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
     "dev:client": "npm run dev --prefix client",
     "dev:server": "npm run dev --prefix server",
+    "lint": "npm run lint --prefix client",
+    "typecheck": "npm run typecheck --prefix server",
+    "build:client": "npm run build --prefix client",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "license": "ISC"
 }
