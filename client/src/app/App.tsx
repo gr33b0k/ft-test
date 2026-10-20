@@ -8,9 +8,9 @@ import { ResponsesPage } from '@/pages/responses'
 
 function AdminLayout() {
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-dvh flex-col">
       <Header />
-      <main>
+      <main className="flex flex-1 flex-col">
         <Outlet />
       </main>
     </div>

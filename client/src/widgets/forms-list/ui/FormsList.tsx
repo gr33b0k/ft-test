@@ -69,7 +69,7 @@ export function FormsList() {
   if (loading) return <PageLoader />
 
   return (
-    <section className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-5xl flex-col px-5 pb-16 pt-10">
+    <section className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-5 pb-16 pt-10">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-ink">Формы отклика</h1>
@@ -89,14 +89,15 @@ export function FormsList() {
       )}
 
       {forms.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center">
-          <div className="w-full rounded-3xl border-2 border-dashed border-stone-300 bg-white px-6 py-16 text-center">
-            <div className="mx-auto mb-5 grid size-14 place-items-center rounded-2xl bg-brand-50 text-brand-600">
+        <div className="flex flex-1 flex-col">
+          <div className="flex w-full flex-1 flex-col items-center justify-center rounded-3xl border-2 border-dashed border-stone-300 bg-white px-6 py-16 text-center">
+            <div className="mb-5 grid size-14 place-items-center rounded-2xl bg-brand-50 text-brand-600">
               <FileText className="size-7" aria-hidden />
             </div>
             <p className="text-lg font-semibold text-ink">Форм пока нет</p>
             <p className="mx-auto mt-2 max-w-sm text-sm text-ink-muted">
-              Создайте первую форму отклика — соберите вопросы, опубликуйте её и поделитесь ссылкой со студентами.
+              Создайте первую форму отклика — соберите вопросы, опубликуйте её
+              и поделитесь ссылкой со студентами.
             </p>
           </div>
         </div>
@@ -140,7 +141,7 @@ export function FormsList() {
                       Опубликовать
                     </Button>
                   )}
-                  <Link to={`/admin/forms/${form.id}/responses`}>
+                  <Link to={`/admin/forms/${form.id}/responses`} state={{ from: 'list' }}>
                     <Button variant="ghost">Ответы</Button>
                   </Link>
                   <Button variant="danger" onClick={() => handleDelete(form)}>

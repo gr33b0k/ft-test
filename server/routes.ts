@@ -7,11 +7,23 @@ function nowISO(): string {
   return new Date().toISOString();
 }
 
+const TRANSLIT: Record<string, string> = {
+  а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "yo",
+  ж: "zh", з: "z", и: "i", й: "y", к: "k", л: "l", м: "m",
+  н: "n", о: "o", п: "p", р: "r", с: "s", т: "t", у: "u",
+  ф: "f", х: "kh", ц: "ts", ч: "ch", ш: "sh", щ: "shh",
+  ъ: "", ы: "y", ь: "", э: "e", ю: "yu", я: "ya",
+  і: "i", ї: "yi", є: "e", ґ: "g", ў: "u",
+};
+
+function transliterate(text: string): string {
+  return [...text.toLowerCase()].map((ch) => TRANSLIT[ch] ?? ch).join("");
+}
+
 function slugify(title: string): string {
-  return title
-    .toLowerCase()
-    .replaceAll("ё", "е")
-    .replace(/[^a-zа-я0-9]+/g, "-")
+  return transliterate(title)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
 

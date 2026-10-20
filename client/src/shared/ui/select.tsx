@@ -54,7 +54,7 @@ export function CustomSelect({
         aria-expanded={open}
         aria-label={ariaLabel}
         onClick={() => setOpen((v) => !v)}
-        className={`flex w-full items-center justify-between gap-2 rounded-xl bg-white px-3.5 py-2.5 text-left text-sm shadow-[0_1px_2px_rgb(28_25_23/0.04)] ring-1 outline-none transition-colors duration-150 ${
+        className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl bg-white px-3.5 py-2.5 text-left text-sm shadow-[0_1px_2px_rgb(28_25_23/0.04)] ring-1 outline-none transition-colors duration-150 ${
           open
             ? 'ring-2 ring-brand-500'
             : 'ring-stone-200 hover:ring-stone-300 focus-visible:ring-2 focus-visible:ring-brand-500'
@@ -84,7 +84,7 @@ export function CustomSelect({
                   onValueChange(option.value)
                   setOpen(false)
                 }}
-                className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors duration-100 hover:bg-brand-50 ${
+                className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors duration-100 hover:bg-brand-50 ${
                   isSelected ? 'text-brand-700' : 'text-ink-soft hover:text-ink'
                 }`}
               >
