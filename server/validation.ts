@@ -192,3 +192,46 @@ export function checkAttempt(form: Form, answers: Answer[]): Answer[] {
   }
   return checked;
 }
+
+/**
+ * Санитизация неполного (чернового) ответа: без проверок required.
+ * Невалидные для вопроса данные просто отбрасываются, пустые не сохраняются.
+ */
+export function sanitizeAnswers(form: Form, answers: Answer[]): Answer[] {
+  const byQuestion = new Map<string, Answer>();
+  for (const a of answers) {
+    if (!byQuestion.has(a.questionId)) {
+      byQuestion.set(a.questionId, a);
+    }
+  }
+
+  const sanitized: Answer[] = [];
+  for (const question of form.questions) {
+    const answer = byQuestion.get(question.id);
+    if (!answer) continue;
+    const { type, options } = question;
+    const value = answer.value;
+
+    if (type === "checkbox") {
+      if (!Array.isArray(value)) continue;
+      const chosen = [...new Set(value.map((v) => String(v).trim()))].filter(
+        (v) => v !== "" && (options ?? []).includes(v),
+      );
+      if (chosen.length > 0) {
+        sanitized.push({ questionId: question.id, value: chosen });
+      }
+      continue;
+    }
+
+    if (Array.isArray(value)) continue;
+    const text = value.trim();
+    if (text === "") continue;
+    if (type === "text") {
+      sanitized.push({ questionId: question.id, value: text });
+      continue;
+    }
+    if (!(options ?? []).includes(text)) continue;
+    sanitized.push({ questionId: question.id, value: text });
+  }
+  return sanitized;
+}

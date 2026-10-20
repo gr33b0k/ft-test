@@ -1,7 +1,15 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Check, SearchX } from 'lucide-react'
 import { type Answer, type Form, type Question } from '@/entities/form/model'
 import { submissionApi } from '@/features/submission/api'
+import {
+  answersFromAttempt,
+  clearSavedAttempt,
+  createProgressSaver,
+  readSavedAttemptId,
+  saveAttemptId,
+  type ProgressSaver,
+} from '@/features/submission/model'
 import { Alert, Button, CustomSelect, PageLoader, Textarea } from '@/shared/ui'
 
 function FormQuestion({
@@ -97,14 +105,87 @@ export function PublicForm({ slug }: { slug: string }) {
   const [error, setError] = useState<string | null>(null)
   const [details, setDetails] = useState<string[]>([])
   const [submitted, setSubmitted] = useState(false)
+  const[previouslySubmitted, setPreviouslySubmitted] = useState(false)
+  const attemptIdRef = useRef<string | null>(null)
+  const saverRef = useRef<ProgressSaver | null>(null)
 
+  // восстановление черновика после перезагрузки
   useEffect(() => {
     submissionApi
       .getPublishedForm(slug)
-      .then(setForm)
+      .then((f) => {
+        setForm(f)
+        const savedId = readSavedAttemptId(f.id)
+        if (!savedId) return
+        return submissionApi
+          .getAttempt(slug, savedId)
+          .then((attempt) => {
+            if (attempt.status === 'submitted') {
+              clearSavedAttempt(f.id)
+              setPreviouslySubmitted(true)
+              return
+            }
+            attemptIdRef.current = attempt.id
+            setAnswers((prev) => ({ ...answersFromAttempt(attempt), ...prev }))
+          })
+          .catch(() => {
+            // attempt удалён, форма переиздана под другим id — прогресс не восстановить
+            clearSavedAttempt(f.id)
+          })
+      })
       .catch((e) => setLoadError(e instanceof Error ? e.message : 'Форма не найдена'))
       .finally(() => setLoading(false))
   }, [slug])
+
+  useEffect(() => {
+    return () => saverRef.current?.cancel()
+  }, [])
+
+  function toPayload(map: Record<string, string | string[]> = answers): Answer[] {
+    if (!form) return []
+    return form.questions
+      .map((q) => ({ questionId: q.id, value: map[q.id] ?? (q.type === 'checkbox' ? [] : '') }))
+      .filter((a) => (Array.isArray(a.value) ? a.value.length > 0 : String(a.value).trim() !== ''))
+  }
+
+  function updateAnswer(id: string, value: string | string[]) {
+    setAnswers((a) => {
+      const next = { ...a, [id]: value }
+      answersRef.current = next
+      return next
+    })
+    ensureSaver()?.save(toPayload(answersRef.current))
+  }
+
+  const answersRef = useRef<Record<string, string | string[]>>({})
+
+  function ensureSaver(): ProgressSaver | null {
+    if (!form) return null
+    if (!saverRef.current) {
+      saverRef.current = createProgressSaver({
+        hasStarted: () => attemptIdRef.current !== null,
+        onStart: async (payload) => {
+          try {
+            const attempt = await submissionApi.startAttempt(slug, payload)
+            attemptIdRef.current = attempt.id
+            saveAttemptId(form.id, attempt.id)
+          } catch {
+            // без интернета черновик не создаётся; отправка всё равно будет требовать сеть
+          }
+        },
+        onUpdate: async (payload) => {
+          const id = attemptIdRef.current
+          if (!id) return
+          try {
+            await submissionApi.updateAttempt(slug, id, payload)
+          } catch {
+            // сервер недоступен — сохранимся при следующем изменении
+          }
+        },
+      })
+    }
+    return saverRef.current
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -120,12 +201,12 @@ export function PublicForm({ slug }: { slug: string }) {
     setSubmitting(true)
     setError(null)
     setDetails([])
-    const payload: Answer[] = form.questions
-      .map((q) => ({ questionId: q.id, value: answers[q.id] ?? (q.type === 'checkbox' ? [] : '') }))
-      .filter((a) => (Array.isArray(a.value) ? a.value.length > 0 : String(a.value).trim() !== ''))
-
     try {
-      await submissionApi.submit(slug, payload)
+      const saver = saverRef.current
+      if (saver) await saver.flush()
+      await submissionApi.submit(slug, toPayload(answersRef.current), attemptIdRef.current ?? undefined)
+      clearSavedAttempt(form.id)
+      attemptIdRef.current = null
       setSubmitted(true)
       window.scrollTo(0, 0)
     } catch (err) {
@@ -150,15 +231,19 @@ export function PublicForm({ slug }: { slug: string }) {
     )
   }
 
-  if (submitted) {
+  if (submitted || previouslySubmitted) {
     return (
       <div className="mx-auto max-w-xl px-5 py-24">
         <div className="rounded-3xl bg-white p-10 text-center shadow-xl shadow-stone-900/5 ring-1 ring-stone-200">
           <div className="mx-auto mb-5 grid size-16 place-items-center rounded-full bg-brand-100 text-brand-600">
             <Check className="size-8" strokeWidth={2.5} aria-hidden />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-ink">Ответ отправлен</h1>
-          <p className="mt-2 text-sm text-ink-soft">Спасибо! Ваш отклик успешно зарегистрирован.</p>
+          <h1 className="text-xl font-bold tracking-tight text-ink">
+            {submitted ? 'Ответ отправлен' : 'Вы уже отправляли эту форму'}
+          </h1>
+          <p className="mt-2 text-sm text-ink-soft">
+            {submitted ? 'Спасибо! Ваш отклик успешно зарегистрирован.' : 'Спасибо, ваши ответы уже зарегистрированы.'}
+          </p>
         </div>
       </div>
     )
@@ -188,7 +273,7 @@ export function PublicForm({ slug }: { slug: string }) {
               <FormQuestion
                 question={q}
                 value={answers[q.id] ?? (q.type === 'checkbox' ? [] : '')}
-                onChange={(v) => setAnswers((a) => ({ ...a, [q.id]: v }))}
+                onChange={(v) => updateAnswer(q.id, v)}
               />
             </div>
           ))}
@@ -213,6 +298,9 @@ export function PublicForm({ slug }: { slug: string }) {
           <Button type="submit" disabled={submitting} className="w-full py-3 text-base sm:w-auto sm:px-10">
             {submitting ? 'Отправка…' : 'Отправить отклик'}
           </Button>
+          <p className="mt-3 text-xs text-ink-muted">
+            Черновик сохраняется автоматически — можно вернуться и дописать позже.
+          </p>
         </div>
       </div>
       <p className="mt-5 text-center text-xs text-ink-muted">Карьерная платформа · анонимная форма отклика</p>

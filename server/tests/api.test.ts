@@ -165,6 +165,73 @@ describe("API форм", () => {
     expect(attempts).toHaveLength(1);
   });
 
+  describe("черновой прогресс (started attempt)", () => {
+    const SLUG = "/api/public/forms/stazhirovka-frontend-2026";
+
+    let draftId: string;
+
+    it("start создаёт started-попытку, невалидные варианты отбрасываются", async () => {
+      const res = await send("POST", `${SLUG}/attempts/start`, {
+        answers: [{ questionId: "q9-ghost", value: "x" }],
+      });
+      expect(res.status).toBe(201);
+      const attempt = await json<{ id: string; status: string; answers: unknown[] }>(res);
+      expect(attempt.status).toBe("started");
+      expect(attempt.answers).toEqual([]);
+      draftId = attempt.id;
+    });
+
+    it("PUT обновляет ответы; пустые и вне-Variantов не сохраняются", async () => {
+      const res = await send("PUT", `${SLUG}/attempts/${draftId}`, {
+        answers: [{ questionId: "q1", value: "Марк" }],
+      });
+      expect(res.status).toBe(200);
+      const attempt = await json<{ answers: { questionId: string; value: string }[] }>(res);
+      expect(attempt.answers).toEqual([{ questionId: "q1", value: "Марк" }]);
+    });
+
+    it("PUT к существующей отправленной попытке — 404", async () => {
+      const submitted = await send("POST", `${SLUG}/attempts`, {
+        answers: [{ questionId: "q1", value: "Аня" }],
+      });
+      const submittedId = (await json<{ id: string }>(submitted)).id;
+      const res = await send("PUT", `${SLUG}/attempts/${submittedId}`, {
+        answers: [],
+      });
+      expect(res.status).toBe(404);
+    });
+
+    it("submit с attemptId завершает черновик (200, статус submitted)", async () => {
+      const res = await send("POST", `${SLUG}/attempts`, {
+        answers: [{ questionId: "q1", value: "Марк" }],
+        attemptId: draftId,
+      });
+      expect(res.status).toBe(200);
+      const attempt = await json<{ id: string; status: string }>(res);
+      expect(attempt.id).toBe(draftId);
+      expect(attempt.status).toBe("submitted");
+    });
+
+    it("start на неопубликованной форме — 404", async () => {
+      const res = await send("POST", "/api/public/forms/netTakoi/attempts/start", {
+        answers: [],
+      });
+      expect(res.status).toBe(404);
+    });
+
+    it("GET черновика по id возвращается (восстановление прогресса)", async () => {
+      const start = await send("POST", `${SLUG}/attempts/start`, {
+        answers: [{ questionId: "q1", value: "Даша" }],
+      });
+      const draft = await json<{ id: string }>(start);
+      const fetched = await get(`${SLUG}/attempts/${draft.id}`);
+      expect(fetched.status).toBe(200);
+      const attempt = await json<{ status: string; answers: { value: string }[] }>(fetched);
+      expect(attempt.status).toBe("started");
+      expect(attempt.answers[0].value).toBe("Даша");
+    });
+  });
+
   it("снятие с публикации закрывает публичный доступ", async () => {
     const unpublish = await send("POST", `/api/forms/${formId}/unpublish`);
     expect(unpublish.status).toBe(200);

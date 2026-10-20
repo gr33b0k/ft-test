@@ -1,7 +1,13 @@
 import { Router } from "express";
 import { Form } from "./models";
 import { readDB, writeDB } from "./db";
-import { HttpError, parseFormPayload, parseAttemptPayload, checkAttempt } from "./validation";
+import {
+  HttpError,
+  checkAttempt,
+  parseAttemptPayload,
+  parseFormPayload,
+  sanitizeAnswers,
+} from "./validation";
 
 function nowISO(): string {
   return new Date().toISOString();
@@ -151,18 +157,70 @@ publicRouter.get("/:slug/attempts/:attemptId", (req, res) => {
   res.json(attempt);
 });
 
-publicRouter.post("/:slug/attempts", (req, res) => {
+/** Начало заполнения: создаёт черновой (started) attempt. */
+publicRouter.post("/:slug/attempts/start", (req, res) => {
   const db = readDB();
   const form = db.forms.find((f) => f.slug === req.params.slug && f.published);
   if (!form) {
     throw new HttpError(404, "Форма не найдена или ещё не опубликована");
   }
   const answers = parseAttemptPayload(req.body);
-  const checked = checkAttempt(form, answers);
   const attempt = {
     id: crypto.randomUUID(),
     formId: form.id,
-    answers: checked,
+    answers: sanitizeAnswers(form, answers),
+    status: "started" as const,
+    createdAt: nowISO(),
+  };
+  db.attempts.push(attempt);
+  writeDB(db);
+  res.status(201).json(attempt);
+});
+
+/** Сохранение прогресса: только для незавершённого attempt этой формы. */
+publicRouter.put("/:slug/attempts/:attemptId", (req, res) => {
+  const db = readDB();
+  const form = db.forms.find((f) => f.slug === req.params.slug && f.published);
+  const attempt = db.attempts.find(
+    (a) => a.id === req.params.attemptId && a.formId === form?.id && a.status === "started",
+  );
+  if (!form || !attempt) {
+    throw new HttpError(404, "Незавершённая отправка не найдена");
+  }
+  const answers = parseAttemptPayload(req.body);
+  attempt.answers = sanitizeAnswers(form, answers);
+  writeDB(db);
+  res.json(attempt);
+});
+
+publicRouter.post("/:slug/attempts", (req, res) => {
+  const db = readDB();
+  const form = db.forms.find((f) => f.slug === req.params.slug && f.published);
+  if (!form) {
+    throw new HttpError(404, "Форма не найдена или ещё не опубликована");
+  }
+  const answers = checkAttempt(form, parseAttemptPayload(req.body));
+
+  // Отправка может завершить незавершённый attempt (конец автосохранения)
+  const attemptId =
+    typeof (req.body as { attemptId?: unknown })?.attemptId === "string"
+      ? (req.body as { attemptId: string }).attemptId
+      : undefined;
+  const started = db.attempts.find(
+    (a) => a.id === attemptId && a.formId === form.id && a.status === "started",
+  );
+  if (started) {
+    started.answers = answers;
+    started.status = "submitted";
+    writeDB(db);
+    res.status(200).json(started);
+    return;
+  }
+
+  const attempt = {
+    id: crypto.randomUUID(),
+    formId: form.id,
+    answers,
     status: "submitted" as const,
     createdAt: nowISO(),
   };
